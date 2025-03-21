@@ -7,10 +7,9 @@ from datetime import timedelta
 from math import isclose
 import pyproj
 
-cit1 = 5  # 定义了两个常量 cit1 和 cit2
+cit1 = 5  
 cit2 = 10
 
-#######################计算在一个矩形框内,中心轨迹点与其他点之间的平行(方向)关系,新添加两列 angle_std和angle_mean ###################################
 
 # 计算两点之间的地球表面距离（Haversine 公式）
 def calculate_distance(previous_lat, previous_long, current_lat, current_long):
@@ -50,7 +49,7 @@ def convert_to_plane_coordinates(longitude, latitude):
         return None, None
 
 
-# 计算当前点在矩形框内的点数
+
 def count_points_in_rectangle_vectorized(current_point, gnss_data, rectangle_length, rectangle_width):
     in_proj = pyproj.CRS("EPSG:4326")
     out_proj = pyproj.CRS("EPSG:32633")
@@ -81,7 +80,7 @@ def count_points_in_rectangle_vectorized(current_point, gnss_data, rectangle_len
     return count
 
 
-# 计算航向角差异
+
 def calculate_bearing_diff(current_bearing, previous_bearing):
     if current_bearing is None or previous_bearing is None:
         bearingdiff = 0
@@ -92,7 +91,7 @@ def calculate_bearing_diff(current_bearing, previous_bearing):
     return bearing_diff
 
 
-# 计算累积和
+
 def cumulative_sum(num, lst):
     cum_sum = [0 for x in range(len(lst))]
     cum_sum[0] = sum(lst[:1])
@@ -106,7 +105,7 @@ def cumulative_sum(num, lst):
     return cum_sum
 
 
-# 计算轨迹的曲率
+
 def calculate_curvature(lat1, lon1, lat2, lon2, lat3, lon3):
     distance1 = calculate_distance(lat1, lon1, lat2, lon2)
     distance2 = calculate_distance(lat2, lon2, lat3, lon3)
@@ -125,12 +124,12 @@ def calculate_curvature(lat1, lon1, lat2, lon2, lat3, lon3):
     return curvature
 
 
-# 计算轨迹点的平行关系特征
+
 def calculate_parallel_feature(df, rectangle_length, rectangle_width):
     angle_std_list = []
     angle_mean_list = []
 
-    # 提取UTM坐标
+    
     df[['x', 'y']] = df.apply(lambda row: pd.Series(convert_to_plane_coordinates(row['longitude'], row['latitude'])),
                               axis=1)
 
@@ -139,11 +138,11 @@ def calculate_parallel_feature(df, rectangle_length, rectangle_width):
         current_bearing = current_point['bearing']
         center_x, center_y = current_point['x'], current_point['y']
 
-        # 定义矩形框范围
+        
         x_min, x_max = center_x - rectangle_length / 2, center_x + rectangle_length / 2
         y_min, y_max = center_y - rectangle_width / 2, center_y + rectangle_width / 2
 
-        # 选取在矩形框内的其他轨迹点
+       
         points_in_rectangle = df[
             (df['x'] >= x_min) &
             (df['x'] <= x_max) &
@@ -151,11 +150,11 @@ def calculate_parallel_feature(df, rectangle_length, rectangle_width):
             (df['y'] <= y_max)
             ]
 
-        # 计算夹角差异
+       
         angle_diffs = []
         for j, other_point in points_in_rectangle.iterrows():
             if j == i:
-                continue  # 跳过自己
+                continue  
             other_bearing = other_point['bearing']
             angle_diff = calculate_bearing_diff(current_bearing, other_bearing)
             angle_diffs.append(angle_diff)
@@ -177,31 +176,23 @@ def calculate_parallel_feature(df, rectangle_length, rectangle_width):
 
 
 def calculate_radian_and_mean_length(df):
-    """
-    计算每个点的弧度（角度）和平均长度，并添加到DataFrame中，生成'radian'和'mean_length'两列。
-
-    参数:
-    - df: 包含 'latitude' 和 'longitude' 列的 DataFrame。
-
-    返回:
-    - 包含新特征 'radian' 和 'mean_length' 的 DataFrame。
-    """
+    
     radian_list = []
     mean_length_list = []
 
     for i in range(len(df)):
         if i == 0:
-            # 只有下一个点
+            
             p1, p2 = df.iloc[i], df.iloc[i + 1]
             radian = calculate_angle(p1, p2)
             mean_length = calculate_distance(p1['latitude'], p1['longitude'], p2['latitude'], p2['longitude'])
         elif i == len(df) - 1:
-            # 只有上一个点
+            
             p1, p2 = df.iloc[i - 1], df.iloc[i]
             radian = calculate_angle(p1, p2)
             mean_length = calculate_distance(p1['latitude'], p1['longitude'], p2['latitude'], p2['longitude'])
         else:
-            # 同时具有前一个和下一个点
+            
             p0, p1, p2 = df.iloc[i - 1], df.iloc[i], df.iloc[i + 1]
             angle1 = calculate_angle(p0, p1)
             angle2 = calculate_angle(p1, p2)
@@ -220,24 +211,10 @@ def calculate_radian_and_mean_length(df):
 
 
 def calculate_angle(p1, p2):
-    """
-    计算两个点之间的角度（弧度）。
-    """
+   
     dlon = radians(p2['longitude'] - p1['longitude'])
     dlat = radians(p2['latitude'] - p1['latitude'])
     return atan2(dlat, dlon)
-
-
-"""def calculate_distance(lat1, lon1, lat2, lon2):
-    
-    R = 6371000  # 地球半径，单位：米
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return R * c"""
-
 
 
 # 读取并计算特征
@@ -256,7 +233,7 @@ def calFeature(path, final_path):
         bearing_list = data['bearing']
         type_list = data['type']
 
-        # 初始化特征列表
+        
         time_diff = [0] * len(speed_list)
         speed_diff = [0] * len(speed_list)
         acceleration_list = [0] * len(speed_list)
@@ -269,7 +246,7 @@ def calFeature(path, final_path):
         gnss_data = [{'longitude': lon, 'latitude': lat} for lon, lat in zip(longitude_list, latitude_list)]
         curvature_list = [0] * len(speed_list)
 
-        # 计算时间差和距离
+       
         for a in range(len(speed_list)):
             if a == 0:
                 distance_list[0] = 0
@@ -282,7 +259,7 @@ def calFeature(path, final_path):
                 d2 = datetime.datetime.strptime(str(timestamp_list[a]), '%Y/%m/%d %H:%M:%S')
                 time_diff[a] = (d2 - d1).total_seconds()
 
-        # 计算速度差、加速度和航向角差
+        
         for c in range(len(speed_list)):
             if c == 0:
                 speed_diff[c] = 0
@@ -294,7 +271,7 @@ def calFeature(path, final_path):
                 speed_diff[c] = abs(speed_diff[c])
                 bearing_diff[c] = calculate_bearing_diff(bearing_list[c], bearing_list[c - 1])
 
-        # 计算航向速度
+        
         for d in range(len(speed_list)):
             if d == 0:
                 bearing_speed[d] = 0
@@ -304,7 +281,7 @@ def calFeature(path, final_path):
                 else:
                     bearing_speed[d] = round(bearing_list[d] / time_diff[d], 3) if time_diff[d] != 0 else 0
 
-        # 计算航向速度差和航向加速度
+       
         for e in range(len(speed_list)):
             if e == 0:
                 bearing_speed_diff[e] = 0
@@ -314,7 +291,7 @@ def calFeature(path, final_path):
                 bearing_acceleration[e] = round(bearing_speed_diff[e] / time_diff[e], 4) if time_diff[e] != 0 else 0
                 bearing_speed_diff[e] = abs(bearing_speed_diff[e])
 
-        # 计算分布特征
+        
         for f in range(len(timestamp_list)):
             point_x = longitude_list[f]
             point_y = latitude_list[f]
@@ -328,11 +305,11 @@ def calFeature(path, final_path):
                 distribution_list[f] = 0
             print(f"{f}-{distribution_list[f]}")
 
-        # 计算累积距离
+       
         distance_five = cumulative_sum(cit1, distance_list)
         distance_ten = cumulative_sum(cit2, distance_list)
 
-        # 创建 DataFrame 并添加特征
+        
         columns = ['timestamp', 'timeDiff', 'longitude', 'latitude', 'distance', 'speed', 'speedDiff', 'acceleration',
                    'bearing', 'bearingDiff', 'bearingSpeed', 'bearingSpeedDiff', 'bearingAcceleration',
                    'type', 'curvature', 'distance_five', 'distance_ten', 'distribution']
@@ -357,8 +334,8 @@ def calFeature(path, final_path):
             "distribution": distribution_list
         })
 
-        # 计算曲率
-        curvature_list = [0]  # 第一个点的曲率设为0
+        
+        curvature_list = [0] 
         for j in range(1, len(df) - 1):
             lat1, lon1 = df.iloc[j - 1]['latitude'], df.iloc[j - 1]['longitude']
             lat2, lon2 = df.iloc[j]['latitude'], df.iloc[j]['longitude']
@@ -366,26 +343,23 @@ def calFeature(path, final_path):
             curvature = calculate_curvature(lat1, lon1, lat2, lon2, lat3, lon3)
             curvature = round(curvature, 2)
             curvature_list.append(curvature)
-        curvature_list.append(0)  # 最后一个点的曲率设为0
+        curvature_list.append(0)  
         df['curvature'] = curvature_list
 
-        # 计算平行关系特征
+        
         df = calculate_parallel_feature(df, rectangle_length, rectangle_width)
 
-         #计算弧度和平均段长
         df=calculate_radian_and_mean_length(df)
 
-
-        # 删除临时的 UTM 坐标列
         df.drop(['x', 'y'], axis=1, inplace=True)
 
-        # 保存结果到新的 Excel 文件
+       
         df.to_excel(os.path.join(final_path, files[i]), index=False)
 
 
 if __name__ == "__main__":
-    path = "/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/renameData1(7--V2.0)/wheat/"
-    final_path = "/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/calculateData6(7--V2.0)/wheat/"
+    path = "/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/renameData/wheat/"
+    final_path = "/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/calculateData6/wheat/"
 
     calFeature(path, final_path)
 
