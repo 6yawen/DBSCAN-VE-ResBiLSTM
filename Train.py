@@ -16,8 +16,6 @@ import random
 import torch
 import torch.nn as nn
 
-####################################  实现每层的残差连接，可以在每层 LSTM 后添加一个残差连接，将前一层的输出和当前层的输入相加。这样，残差将用于每层   ################################################
-####################################   训练数据:calculateData4    ##############################################################
 # load datasets: each excel as independent image to train
 def load_data(file_name):  # 函数从指定的 Excel 文件中加载数据
     print(f"Loading data from file {file_name}...")  # file_name：传入的 Excel 文件的路径。
