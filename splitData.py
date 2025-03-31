@@ -6,7 +6,7 @@ import shutil
 
 def spilt():
     
-    path = '/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/weights/weights/wheat_1_data_split.pkl'
+    path = '/home/ubuntu/Data/hyw/filed-road-wheatData/weights/weights/wheat_1_data_split.pkl'
     
     Kfold = 10  #定义了 Kfold 为10，表示要将数据划分为10个折叠，用于交叉验证。
     with open(path, 'rb') as file: 
