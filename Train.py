@@ -24,7 +24,7 @@ def load_data(file_name):
     feature_columns = ['distance', 'speed', 'speedDiff', 'acceleration', 'bearing', 'bearingDiff', 'bearingSpeed',
                        'bearingSpeedDiff', 'curvature', 'distance_five', 'distance_ten', 'distribution','angle_std','angle_mean'] #少了，6-1  'mean_length' 'radian'
     features = df[feature_columns].values  
-    # 将特征数据的形状调整为 PyTorch 模型训练所需的 3D 张量。
+   
     
     features = features.reshape(-1, 1, len(feature_columns))  
     print("Input features shape:", features.shape)  
@@ -35,8 +35,7 @@ def load_data(file_name):
     features = torch.tensor(features).float().to('cuda:6')
     target = torch.tensor(target).long().to('cuda:6') 
     print("Data loading completed.")
-    return features, target  # 返回两个张量（features 和 target），分别表示输入特征和目标标签，这两个值将在后续模型训练中使用
-
+    return features, target 
 
 class GumbelActivation(nn.Module): 
     def __init__(self):
@@ -106,14 +105,12 @@ class ConvTEModel(nn.Module):
             x, _ = lstm(x)  # x is (L, N, 24)
             x = x + residual  
 
-        # 全局平均池化
+      
         output = torch.mean(x, dim=0)  
         output = self.fc(output)  
-        output = torch.sigmoid(output)  # 应用 Sigmoid 激活函数
-        return output  # 返回最终的模型输出
+        output = torch.sigmoid(output)  
+        return output  
 
-
-# FocalLossWithRegularization 类的作用是定义一种结合焦点损失和L2正则化的损失函数，主要用于处理类别不平衡问题。
 class FocalLossWithRegularization(nn.Module):
    
     def __init__(self, alpha, gamma, reduction, regularization_coeff=0.00001):
@@ -140,18 +137,18 @@ class FocalLossWithRegularization(nn.Module):
         for param in self.parameters():
             regularization_term += torch.sum(param.pow(2))
 
-        # 将焦点损失和正则化项相加，返回最终损失
+      
         total_loss = focal_loss + self.regularization_coeff * regularization_term  
 
-        return total_loss  # 返回最终损失
+        return total_loss  
 
 
 def train(model, num_epochs, batch_size, patience=10): 
-    # optimizer = optim.Adam(model.parameters(), lr=0.00001) ok
+   
     optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=0.00001)  
     criterion = FocalLossWithRegularization(alpha=0.25, gamma=2, reduction='mean')  
 
-    # 初始化最优模型状态和各类历史记录列表（训练损失、验证精度等）
+  
     best_model_state = None
     train_loss_history = []
     val_accuracy_history = []
@@ -163,22 +160,22 @@ def train(model, num_epochs, batch_size, patience=10):
     train_loss_avg_history = []
     val_loss_avg_history = []
 
-    # 输出训练开始信息，使用 glob 加载指定路径下的训练数据文件，并将特征和目标数据存入 train_data 列表。
+  
     print("Starting model training...")
     train_data = []
     train_file_names = glob.glob(
-        f"/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/calculateData6/wheat/_10fold/{fold_num}/train/*.xlsx")
+        f"/home/ubuntu/Data/calculateData6/wheat/_10fold/{fold_num}/train/*.xlsx")
     for train_file_name in train_file_names:
         features_train, target_train = load_data(train_file_name)
         train_data.append((features_train, target_train))
 
-    # 初始化早停计数器和最佳混合结果
+   
     early_stopping_counter = 0
     best_mix_result = 0
 
-    for epoch in range(num_epochs):  # 开始训练的主循环，遍历每个 epoch，将模型设为训练模式并初始化总损失
-        model.train()  # 将模型设为训练模式
-        all_file_loss = 0.0  # 初始化总损失
+    for epoch in range(num_epochs):  
+        model.train()  
+        all_file_loss = 0.0  
         for train_file_index, (features_train, target_train) in enumerate(train_data, 1):  
             current_file_loss = 0.0 
             batch_size = features_train.shape[0]
@@ -187,7 +184,6 @@ def train(model, num_epochs, batch_size, patience=10):
                 batch_features = features_train.clone().detach().to('cuda:6').float()
                 batch_target = target_train.clone().detach().to('cuda:6').long()
 
-                # 清零梯度，执行前向传播得到输出，计算损失，反向传播梯度并更新模型参数。
                 optimizer.zero_grad()
                 output = model(batch_features)
 
@@ -195,17 +191,17 @@ def train(model, num_epochs, batch_size, patience=10):
                 loss.backward()
                 optimizer.step()
 
-                current_file_loss += loss.item()  # 累加当前文件的损失并计算平均损失
+                current_file_loss += loss.item() 
             current_file_average_loss = current_file_loss
 
-            # 输出每个文件和总的训练损失
+          
             print(
                 f'Epoch [{epoch + 1}/{num_epochs}], File: {train_file_index}-Training Loss: {current_file_average_loss}')
             all_file_loss += current_file_average_loss
         all_file_average_loss = all_file_loss / len(train_data)
         print(f'Epoch [{epoch + 1}/{num_epochs}], all_file average training Loss: {all_file_average_loss}')
 
-        if (epoch + 1) % 10 == 0:  # 每10个 epoch 进行一次验证，记录验证集的损失和各类指标
+        if (epoch + 1) % 10 == 0:  
 
             train_loss_avg_history.append(all_file_average_loss)
 
@@ -223,16 +219,16 @@ def train(model, num_epochs, batch_size, patience=10):
             road_recall_list = []
             road_f1_list = []
 
-            # 加载验证数据文件，设定模型为评估模式
+           
             val_file_names = glob.glob(
-                f"/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/calculateData6/wheat/_10fold/{fold_num}/valid/*.xlsx")
+                f"/home/ubuntu/Data/calculateData6/wheat/_10fold/{fold_num}/valid/*.xlsx")
             for val_file_name in val_file_names:
-                model.eval()  # 设定模型为评估模式
+                model.eval()  
                 features_val, target_val = load_data(val_file_name)
                 print(f'features_val: {features_val}')
                 print(f'target_val: {target_val}')
 
-                with torch.no_grad():  # 在不计算梯度的上下文中进行前向传播，计算预测结果，并进行评估指标（精度、召回率、F1 分数等）的计算。
+                with torch.no_grad(): 
                     val_outputs = model(features_val)
                     print(f'val_outputs: {val_outputs}')
                     val_predicted = torch.argmax(val_outputs, dim=1).cpu().numpy()
@@ -285,7 +281,7 @@ def train(model, num_epochs, batch_size, patience=10):
                 print(f'Validation macro Recall: {val_recall_macro}')
                 print(f'Validation macro F1 score: {val_f1_macro}')
 
-                # 计算平均验证损失和其他指标，并输出。
+               
             val_loss_avg = sum(val_loss_list) / len(val_loss_list)
             val_accuracy_avg = round(sum(val_accuracy_list) / len(val_accuracy_list), 6)
             val_precision_macro_avg = round(sum(val_precision_macro_list) / len(val_precision_macro_list), 7)
@@ -305,13 +301,13 @@ def train(model, num_epochs, batch_size, patience=10):
             val_recall_macro_history.append(val_recall_macro_avg)
             val_f1_macro_history.append(val_f1_macro_avg)
 
-            # 根据验证结果更新最佳模型和早停计数器。如果达到早停耐心值，停止训练
+            
             if 0.2 * val_precision_macro_avg + 0.2 * val_recall_macro_avg + 0.3 * val_f1_macro_avg + 0.3 * val_accuracy_avg > best_mix_result:
                 best_mix_result = 0.2 * val_precision_macro_avg + 0.2 * val_recall_macro_avg + 0.3 * val_f1_macro_avg + 0.3 * val_accuracy_avg
                 best_model_state = model.state_dict()
                 early_stopping_counter = 0
                 torch.save(model.module,
-                           f'/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/wheatModelCode/wheatModelCode/bestModel/best_model10_{fold_num}.pt')
+                           f'/home/ubuntu/Data/hyw/filed-road-wheatData/wheatModelCode/bestModel/best_model10_{fold_num}.pt')
                 print(f'Epoch [{epoch + 1}/{num_epochs}], saved')
             else:
                 early_stopping_counter += 1
@@ -322,7 +318,7 @@ def train(model, num_epochs, batch_size, patience=10):
 
     epochs = range(1, len(val_precision_macro_history) + 1)
 
-    # 绘制并保存训练和验证的损失和其他指标的图形
+   
     plt.figure(figsize=(20, 10))
     plt.plot(epochs, val_accuracy_history, label='Validation Accuracy')
     plt.plot(epochs, val_precision_macro_history, label='Validation macro Precision')
@@ -334,7 +330,7 @@ def train(model, num_epochs, batch_size, patience=10):
     plt.title('Evaluation Metrics')
     plt.legend()
     plt.savefig(
-        f'/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/wheatModelCode/wheatModelCode/train-valid/10/metrics_plot1_{fold_num}.png')
+        f'/home/ubuntu/Data/hyw/filed-road-wheatData/wheatModelCode/train-valid/10/metrics_plot1_{fold_num}.png')
     plt.close()
 
     plt.figure(figsize=(20, 10))
@@ -344,13 +340,13 @@ def train(model, num_epochs, batch_size, patience=10):
     plt.ylabel('Loss')
     plt.title('Training and Validation Loss')
     plt.legend()
-    plt.savefig(f'/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/wheatModelCode/wheatModelCode/train-valid/10/Loss_Graph1_{fold_num}.png')
+    plt.savefig(f'/home/ubuntu/Data/hyw/filed-road-wheatData/wheatModelCode/train-valid/10/Loss_Graph1_{fold_num}.png')
     plt.close()
 
     print("Model training completed.")
 
 
-seed_id = 3407  # 设置随机种子以确保实验的可重复性
+seed_id = 3407 
 torch.manual_seed(seed_id)
 torch.cuda.manual_seed_all(seed_id)
 random.seed(seed_id)
@@ -358,7 +354,7 @@ np.random.seed(seed_id)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-# 定义模型，使用 DataParallel 来支持多 GPU 训练，将模型移至 GPU，调用 train 函数进行训练。
+
 model = ConvTEModel(num_classes=2)
 # model = nn.DataParallel(model, device_ids=[0, 1, 2, 3, 4, 5, 6, 7])
 #model = nn.DataParallel(model, device_ids=[4, 5])
