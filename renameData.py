@@ -2,8 +2,8 @@
 import os  
 import pandas as pd  
 
-input_folder = '/home/ubuntu/Data/zxy/gnss/rawData/paddy'  
-output_folder = '/home/ubuntu/Data/zxy/gnss/renameData1/paddy/'  
+input_folder = '/home/ubuntu/Data/gnss/rawData/paddy'  
+output_folder = '/home/ubuntu/Data/gnss/renameData1/paddy/'  
 
 os.makedirs(output_folder, exist_ok=True)  
 
