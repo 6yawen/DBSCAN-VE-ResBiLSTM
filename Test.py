@@ -53,7 +53,6 @@ def calculate_average_metrics(test_metrics_dir, fold_num):
     
     average_metrics['Average Value'] = average_metrics['Average Value'].apply(lambda x: round(x, 4))
 
-    # 保存结果到文件
     output_file = os.path.join(test_metrics_dir, f'average_metrics_{fold_num}.xlsx')
     average_metrics.to_excel(output_file, index=False)
     print(f"Average metrics for fold {fold_num} calculated and saved to {output_file}.")
@@ -65,9 +64,6 @@ def load_data(file_name):
     print(f"Loading data from file {file_name}...")
     df = pd.read_excel(file_name) 
 
-    # feature_columns = ['speed', 'speedDiff', 'distance','acceleration', 'bearing', 'bearingDiff', 'bearingSpeed', 'bearingSpeedDiff','curvature', 'speed_w2_max',  'speed_w2_min', 'speed_w2_var', 'speed_w2_std', 'speed_w2_sum',  'speed_w2_cof','speed_w2_mean', 'bearing_w2_var', 'bearing_w2_std',  'distance_w2_max',  'distance_w2_min', 'distance_w2_var', 'distance_w2_std', 'distance_w2_sum',  'distance_w2_cof','distance_w2_mean', 'acceleration_w2_max', 'acceleration_w2_min',  'acceleration_w2_var', 'acceleration_w2_std', 'acceleration_w2_cof',  'acceleration_w2_mean', 'bearing_speed_w2_max', 'bearing_speed_w2_min', 'bearing_speed_w2_var',  'bearing_speed_w2_std', 'bearing_speed_w2_cof', 'bearing_speed_w2_mean']
-    # feature_columns = ['speed', 'speedDiff', 'distance','acceleration', 'bearing', 'bearingDiff', 'bearingSpeed', 'bearingSpeedDiff','curvature']
-    # 定义要提取的特征列的列表
     feature_columns = ['distance', 'speed', 'speedDiff', 'acceleration', 'bearing', 'bearingDiff', 'bearingSpeed',
                        'bearingSpeedDiff', 'curvature', 'distance_five', 'distance_ten', 'distribution','angle_std','angle_mean']##,     'mean_length'   ,'radian','mean_length'
     features = df[feature_columns].values 
@@ -144,7 +140,7 @@ class ConvTEModel(nn.Module):
         for lstm in self.lstm_layers:
             x, _ = lstm(x)  # x is (L, N, 24)
             x = x + residual 
-        # 全局平均池化
+       
         output = torch.mean(x, dim=0)  # x is (N, 24)
         output = self.fc(output)  
         output = torch.sigmoid(output)  # 应用 Sigmoid 激活函数
@@ -152,7 +148,7 @@ class ConvTEModel(nn.Module):
 
 
 def test(model, fold_num): 
-    # 初始化多个列表，用于存储测试过程中的准确率、宏观精确率、召回率和 F1 分数等指标。
+   
     test_accuracy_list = []
 
     test_precision_macro_list = []
@@ -168,16 +164,16 @@ def test(model, fold_num):
     road_f1_list = []
 
     # 定义存储测试结果、图像和热图的文件路径
-    test_result_dir = '/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/wheatModelCode/wheatModelCode/test/10/result/'
-    test_image_dir = '/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/wheatModelCode/wheatModelCode/test/10/image/'
-    test_heatmap_dir = '/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/wheatModelCode/wheatModelCode/test/heatmap/'
-    test_metrics_dir='/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/wheatModelCode/wheatModelCode/test/10/metrics/'
+    test_result_dir = '/home/ubuntu/Data/hyw/filed-road-wheatData/wheatModelCode/test/10/result/'
+    test_image_dir = '/home/ubuntu/Data/hyw/filed-road-wheatData/wheatModelCode/test/10/image/'
+    test_heatmap_dir = '/home/ubuntu/Data/hyw/filed-road-wheatData/wheatModelCode/test/heatmap/'
+    test_metrics_dir='/home/ubuntu/Data/hyw/filed-road-wheatData/wheatModelCode/test/10/metrics/'
 
     print("Starting model testing...")
 
   
     test_file_names = glob.glob(
-        f"/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/calculateData6(7--data-pro-all-point)/wheat/_10fold/{fold_num}/test/*.xlsx")
+        f"/home/ubuntu/Data/calculateData6/wheat/_10fold/{fold_num}/test/*.xlsx")
     for test_file_name in test_file_names:  
         model.eval()  # 设置模型为评估模式，以禁用 dropout 和 batch normalization。
         features_test, target_test = load_data(test_file_name)  # 调用 load_data 函数加载测试数据和目标值。
@@ -297,7 +293,7 @@ def test(model, fold_num):
 
 # 指定折数，加载对应的最佳模型。
 fold_num =1
-model = torch.load(f'/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/wheatModelCode/wheatModelCode/bestModel/best_model10_{fold_num}.pt')
+model = torch.load(f'/home/ubuntu/Data/hyw/filed-road-wheatDatawheatModelCode/bestModel/best_model10_{fold_num}.pt')
 model = nn.DataParallel(model, device_ids=[2, 3])  
 model = model.to('cuda:2')  
 
