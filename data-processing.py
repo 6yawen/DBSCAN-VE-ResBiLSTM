@@ -116,17 +116,14 @@ def calculate_average_autocorrelation(data, max_lag=25):
 
 
 # 文件路径
-folder_path = '/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/renameData/wheat/'
-log_file_path = '/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/renameData/interpolation_log.txt'
-log_file_path_1 = '/home/ubuntu/Data/hyw/filed-road-wheatData/filed-road-wheatData/renameData/interpolation_1_log.txt'
-#save_path = 'D:/Download/project/filed-road-wheatData/data/corn-0'  # 替换为保存图片的路径
-
+folder_path = '/home/ubuntu/Data/renameData/wheat/'
+log_file_path = '/home/ubuntu/Data/renameData/interpolation_log.txt'
+log_file_path_1 = '/home/ubuntu/Data/renameData/interpolation_1_log.txt'
 
 
 # DBSCAN参数
 eps_km=0.027   
 min_samples =3 
-
 
 
 distance_threshold = 0.027      
@@ -234,25 +231,19 @@ for filename in os.listdir(folder_path):
 
         cluster_counts = smooth_road_data['cluster'].value_counts()
 
-
-
-        # 创建颜色映射
-        #colormap = plt.cm.get_cmap('tab20', num_clusters)  # 选择合适的colormap，'tab20' 支持最多20种颜色
         colormap = matplotlib.colormaps['tab20']  # 使用新的方式获取colormap
-        # 聚类结果图
+       
         plt.figure(figsize=(10, 8))
 
-        # 遍历所有簇标签
         for cluster_label in unique_clusters:
             cluster_points = road_data[road_data['cluster'] == cluster_label]
 
             if cluster_label == -1:
-                # 噪声点，单独处理
+               
                 plt.scatter(cluster_points['longitude'], cluster_points['latitude'], c='black', label='Noise', s=10,
                             alpha=0.6)
             else:
-                # 为每个簇分配不同的颜色（避免使用蓝色）
-                color = colormap(cluster_label % num_clusters)  # 根据簇标签选择颜色
+                color = colormap(cluster_label % num_clusters) 
                 plt.scatter(cluster_points['longitude'], cluster_points['latitude'], c=[color],
                             label=f'Cluster {cluster_label}', s=10, alpha=0.8)
 
@@ -263,12 +254,10 @@ for filename in os.listdir(folder_path):
         plt.savefig(os.path.join(folder_path, f"{filename}_clusters.png"))
         plt.close()
 
-
-        # 插值处理
         new_points = []
         for cluster_label in set(smooth_road_data['cluster']):
             if cluster_label == -1:
-                continue  # 跳过噪声点
+                continue  
 
             cluster_points = smooth_road_data[smooth_road_data['cluster'] == cluster_label].sort_values(by='timestamp').reset_index(drop=True)
 
